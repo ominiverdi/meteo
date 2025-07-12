@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Barcelona Weather Radar - {{ date }}{% endblock %}
+
+{% block content %}
+<div class="date-page">
+    <div class="date-header">
+        <a href="{{ url_for('history') }}" class="back-link">← Back to History</a>
+        <h2>Weather Activity - 
+            {% set day = date[6:8] %}
+            {% set month = date[4:6] %}
+            {% set year = date[:4] %}
+            {{ day }}
+            {% if month == '01' %}Jan
+            {% elif month == '02' %}Feb
+            {% elif month == '03' %}Mar
+            {% elif month == '04' %}Apr
+            {% elif month == '05' %}May
+            {% elif month == '06' %}Jun
+            {% elif month == '07' %}Jul
+            {% elif month == '08' %}Aug
+            {% elif month == '09' %}Sep
+            {% elif month == '10' %}Oct
+            {% elif month == '11' %}Nov
+            {% elif month == '12' %}Dec
+            {% endif %}
+            {{ year }}
+        </h2>
+    </div>
+    
+    {% if animation.mp4 or animation.gif %}
+        <div class="day-animation-section">
+            <h3>Daily Animation</h3>
+            
+            {% if animation.mp4 %}
+                <video controls autoplay muted loop class="day-video">
+                    <source src="{{ url_for('serve_animation', filename=animation.mp4) }}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>
+            {% elif animation.gif %}
+                <img src="{{ url_for('serve_animation', filename=animation.gif) }}" 
+                     alt="Radar animation for {{ date }}" 
+                     class="day-animation">
+            {% endif %}
+            
+            <div class="animation-actions">
+                {% if animation.mp4 %}
+                    <a href="{{ url_for('serve_animation', filename=animation.mp4) }}" 
+                       download="barcelona_radar_{{ date }}.mp4" 
+                       class="btn btn-download">📱 Download MP4</a>
+                {% endif %}
+                {% if animation.gif %}
+                    <a href="{{ url_for('serve_animation', filename=animation.gif) }}" 
+                       download="barcelona_radar_{{ date }}.gif" 
+                       class="btn btn-download">🖼️ Download GIF</a>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="no-animation">
+            <p>No animation available for this date</p>
+        </div>
+    {% endif %}
+
+    <div class="images-section">
+        <h3>Radar Images</h3>
+        {% if images %}
+            <p>{{ images|length }} radar captures from this day</p>
+            
+            <div class="image-grid">
+                {% for img in images %}
+                    <div class="image-item">
+                        <img src="{{ url_for('serve_radar', filename=img) }}" 
+                             alt="Radar {{ loop.index }}" 
+                             class="hourly-radar"
+                             data-src="{{ url_for('serve_radar', filename=img) }}">>
+                        <div class="image-time">
+                            {% set filename = img.split('/')[-1] %}
+                            {% set time_part = filename.split('_')[3].split('.')[0] %}
+                            {{ time_part[:2] }}:{{ time_part[2:4] }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-data">
+                <p>No radar images available for this date</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for full-size image viewing -->
+<div id="imageModal" class="modal" onclick="closeModal()">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <img id="modalImage" src="" alt="Full size radar">
+    </div>
+</div>
+
+<script>
+function openModal(src) {
+    document.getElementById('imageModal').style.display = 'block';
+    document.getElementById('modalImage').src = src;
+}
+
+function closeModal() {
+    document.getElementById('imageModal').style.display = 'none';
+}
+</script>
+{% endblock %}

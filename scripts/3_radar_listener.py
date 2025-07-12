@@ -7,6 +7,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 
+import logging
+logging.basicConfig(level=logging.WARNING)
+
 load_dotenv()
 
 api_key = os.getenv('opendata_apikey')

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Catalunya Weather Radar - History{% endblock %}
+
+{% block content %}
+<div class="history-page">
+    <h2>Weather History</h2>
+    <p>Available radar data archives</p>
+
+    {% if dates %}
+        <div class="date-grid">
+            {% for date in dates %}
+                <div class="date-card">
+                    <a href="{{ url_for('history_date', date_str=date) }}" class="date-link">
+                        <div class="date-display">
+                            <div class="date-number">{{ date[6:8] }}</div>
+                            <div class="date-month">
+                                {% set month = date[4:6] %}
+                                {% if month == '01' %}Jan
+                                {% elif month == '02' %}Feb
+                                {% elif month == '03' %}Mar
+                                {% elif month == '04' %}Apr
+                                {% elif month == '05' %}May
+                                {% elif month == '06' %}Jun
+                                {% elif month == '07' %}Jul
+                                {% elif month == '08' %}Aug
+                                {% elif month == '09' %}Sep
+                                {% elif month == '10' %}Oct
+                                {% elif month == '11' %}Nov
+                                {% elif month == '12' %}Dec
+                                {% endif %}
+                            </div>
+                            <div class="date-year">{{ date[:4] }}</div>
+                        </div>
+                        <div class="date-info">
+                            <span class="date-label">View Day</span>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-data">
+            <p>No historical data available yet</p>
+            <p>Data will appear here after the first day of operation</p>
+        </div>
+    {% endif %}
+
+    <div class="history-info">
+        <h3>Data Retention Policy</h3>
+        <ul>
+            <li>Daily animations kept for current year</li>
+            <li>Data automatically deleted after 365 days</li>
+            <li>Download important events before expiration</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

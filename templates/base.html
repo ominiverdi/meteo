@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Barcelona Weather Radar{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌧️</text></svg>">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <div class="logo">
+                    <h1>🌧️ Catalunya Radar</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Current</a></li>
+                    <li><a href="{{ url_for('today') }}" class="{% if request.endpoint == 'today' %}active{% endif %}">Today</a></li>
+                    <li><a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' or request.endpoint == 'history_date' %}active{% endif %}">History</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>Data from AEMET (Spanish Meteorological Agency) • Updated every 15 minutes</p>
+            <p>Barcelona radar coverage: ~250km radius</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

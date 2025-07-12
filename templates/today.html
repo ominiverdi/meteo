@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Catalunya Weather Radar - Today{% endblock %}
+
+{% block content %}
+<div class="today-page">
+    <h2>Today's Weather Activity</h2>
+    
+    {% if animation.mp4 or animation.gif %}
+        <div class="full-day-animation">
+            <h3>Full Day Animation</h3>
+            
+            {% if animation.mp4 %}
+                <video controls autoplay muted loop class="day-video">
+                    <source src="{{ url_for('serve_animation', filename=animation.mp4) }}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>
+            {% elif animation.gif %}
+                <img src="{{ url_for('serve_animation', filename=animation.gif) }}" 
+                     alt="Today's radar animation" 
+                     class="day-animation">
+            {% endif %}
+            
+            <div class="animation-actions">
+                {% if animation.mp4 %}
+                    <a href="{{ url_for('serve_animation', filename=animation.mp4) }}" 
+                       download="barcelona_radar_{{ date }}.mp4" 
+                       class="btn btn-download">📱 Download MP4</a>
+                {% endif %}
+                {% if animation.gif %}
+                    <a href="{{ url_for('serve_animation', filename=animation.gif) }}" 
+                       download="barcelona_radar_{{ date }}.gif" 
+                       class="btn btn-download">🖼️ Download GIF</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="hourly-images">
+        <h3>Hourly Breakdown</h3>
+        <p>{{ hourly_images|length }} radar images captured today</p>
+        
+        {% if hourly_images %}
+            <div class="image-grid">
+                {% for img in hourly_images %}
+                    <div class="image-item">
+                        <img src="{{ url_for('serve_radar', filename=img) }}" 
+                             alt="Radar {{ loop.index }}" 
+                             class="hourly-radar"
+                             data-src="{{ url_for('serve_radar', filename=img) }}">>
+                        <div class="image-time">
+                            {% set filename = img.split('/')[-1] %}
+                            {% set time_part = filename.split('_')[3].split('.')[0] %}
+                            {{ time_part[:2] }}:{{ time_part[2:4] }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-data">
+                <p>No radar images available for today</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for full-size image viewing -->
+<div id="imageModal" class="modal" onclick="closeModal()">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <img id="modalImage" src="" alt="Full size radar">
+    </div>
+</div>
+
+<script>
+function openModal(src) {
+    document.getElementById('imageModal').style.display = 'block';
+    document.getElementById('modalImage').src = src;
+}
+
+function closeModal() {
+    document.getElementById('imageModal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Catalunya Weather Radar - Current{% endblock %}
+
+{% block content %}
+<div class="current-page">
+    <div class="stats-bar">
+        <div class="stat">
+            <span class="label">Last Update:</span>
+            <span class="value">{{ stats.last_update }}</span>
+        </div>
+        <div class="stat">
+            <span class="label">Images Today:</span>
+            <span class="value">{{ stats.total_images }}</span>
+        </div>
+        <div class="stat">
+            <span class="label">Status:</span>
+            <span class="value {% if stats.last_update_ago < 30 %}status-online{% else %}status-warning{% endif %}">
+                {% if stats.last_update_ago < 30 %}Live{% else %}{{ stats.last_update_ago|int }}min ago{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="radar-section">
+        <h2>Current Radar</h2>
+        {% if latest_radar %}
+            <div class="radar-display">
+                <img src="{{ url_for('serve_radar', filename=latest_radar) }}" 
+                     alt="Current Catalunya Radar" 
+                     class="radar-image">
+            </div>
+        {% else %}
+            <div class="no-data">
+                <p>No radar data available</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="animation-section">
+        <h2>Last 5 Hours Activity</h2>
+        {% if recent_images and recent_images|length > 1 %}
+            <div class="animation-controls">
+                <button id="playBtn" class="btn">▶️ Play</button>
+                <button id="pauseBtn" class="btn" style="display:none">⏸️ Pause</button>
+                <span class="frame-info">
+                    <span id="currentFrame">1</span> / <span id="totalFrames">{{ recent_images|length }}</span>
+                </span>
+            </div>
+            
+            <div class="animation-display">
+                <div id="animationContainer" class="animation-container">
+                    {% for img in recent_images %}
+                        <img src="{{ url_for('serve_radar', filename=img) }}" 
+                             class="animation-frame {% if loop.first %}active{% endif %}" 
+                             alt="Radar frame {{ loop.index }}">
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="animation-info">
+                <p>{{ recent_images|length }} frames from last 5 hours</p>
+                <a href="{{ url_for('today') }}" class="btn btn-primary">View Full Day</a>
+            </div>
+        {% else %}
+            <div class="no-animation">
+                <p>Not enough recent data for animation (need 2+ images)</p>
+                {% if recent_images|length == 1 %}
+                    <p>Current: 1 image available</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Auto-refresh page every 15 minutes
+    setTimeout(() => {
+        window.location.reload();
+    }, 15 * 60 * 1000);
+</script>
+{% endblock %}
