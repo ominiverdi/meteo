@@ -288,16 +288,19 @@ h2,h3{
 
 .date-display {
     margin-bottom: 0.5rem;
+    display: ruby;
+        font-size: 0.9rem;
+
 }
 
 .date-number {
-    font-size: 2rem;
+    /* font-size: 2rem; */
     font-weight: 700;
     color: #667eea;
 }
 
 .date-month, .date-year {
-    font-size: 0.9rem;
+    /* font-size: 0.9rem; */
     color: #666;
 }
 
