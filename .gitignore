@@ -210,3 +210,4 @@ enhanced/*
 animations/*
 .venv_meteo
 aemet/*
+scripts/georef_data/*
