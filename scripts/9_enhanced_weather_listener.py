@@ -633,6 +633,8 @@ def load_vector_data():
     vectors = {}
     
     try:
+        import geopandas as gpd  # Import here
+        
         # Province borders
         province_file = 'naturalearthdata/ne_10m_admin_1_states_provinces.shp'
         if os.path.exists(province_file):
