@@ -278,12 +278,41 @@ def download_satellite_data(radar_timestamp, temp_dir):
         logger.info(f"Downloading: {product}")
         
         with product.open() as fsrc:
-            output_file = temp_dir / fsrc.name
-            with open(output_file, 'wb') as fdst:
+            zip_file = temp_dir / fsrc.name
+            with open(zip_file, 'wb') as fdst:
                 shutil.copyfileobj(fsrc, fdst)
         
-        logger.info(f"Satellite data downloaded: {output_file}")
-        return str(output_file)
+        logger.info(f"Satellite data downloaded: {zip_file}")
+        
+        # Extract ZIP file to find .nat file
+        import zipfile
+        nat_file = None
+        
+        try:
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                # List contents
+                zip_contents = zip_ref.namelist()
+                logger.info(f"ZIP contents: {len(zip_contents)} files")
+                
+                # Find .nat file
+                nat_files = [f for f in zip_contents if f.endswith('.nat')]
+                if nat_files:
+                    nat_filename = nat_files[0]
+                    # Extract to temp directory
+                    zip_ref.extract(nat_filename, temp_dir)
+                    nat_file = temp_dir / nat_filename
+                    logger.info(f"Extracted .nat file: {nat_file}")
+                else:
+                    logger.warning("No .nat file found in ZIP")
+                    
+        except zipfile.BadZipFile:
+            logger.error(f"Invalid ZIP file: {zip_file}")
+        
+        # Cleanup ZIP file
+        if zip_file.exists():
+            zip_file.unlink()
+            
+        return str(nat_file) if nat_file and nat_file.exists() else None
         
     except Exception as e:
         logger.error(f"Satellite download failed: {e}")
