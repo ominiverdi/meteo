@@ -235,11 +235,11 @@ def create_enhanced_image(radar_data, radar_info, water_vapor, vectors):
             cities_3857 = vectors['cities'].to_crs('EPSG:3857')
             
             # Cities to show labels for (removed Sabadell)
-            label_cities = ['Girona', 'Barcelona', 'Terrassa', 'Manresa', 'Tarragona', 'Olot', 'Lleida','Palma de Maiorca']
+            label_cities = ['Girona', 'Barcelona', 'Terrassa', 'Manresa', 'Tarragona', 'Olot', 'Lleida','Palma','Perpinyà']
             
             for idx, city in cities_3857.iterrows():
                 x, y = city.geometry.x, city.geometry.y
-                name = city['name']
+                name = city['name:ca']
                 
                 # Check if city is within province extent + buffer
                 if (extent_bounds['left'] <= x <= extent_bounds['right'] and 
