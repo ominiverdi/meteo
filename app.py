@@ -130,6 +130,30 @@ def serve_animation(filename):
     """Serve animation files"""
     return send_file(filename)
 
+@app.route('/enhanced')
+def enhanced_view():
+    """Enhanced radar+satellite view"""
+    today_str = datetime.now().strftime('%Y%m%d')
+    
+    # Get all enhanced images (today + recent days)
+    enhanced_files = sorted(glob.glob('enhanced_weather/enhanced_weather_*.png'))
+    
+    # Get today's enhanced images
+    today_enhanced = [f for f in enhanced_files if today_str in f]
+    
+    # Latest enhanced image
+    latest_enhanced = enhanced_files[-1] if enhanced_files else None
+    
+    return render_template('enhanced.html',
+                         latest_enhanced=latest_enhanced,
+                         today_enhanced=today_enhanced,
+                         enhanced_files=enhanced_files[-20:])  # Last 20
+
+@app.route('/enhanced_weather/<path:filename>')
+def serve_enhanced_weather(filename):
+    """Serve enhanced weather images"""
+    return send_file(f'enhanced_weather/{filename}')
+    
 @app.route('/api/status')
 def api_status():
     """API endpoint for current status"""
