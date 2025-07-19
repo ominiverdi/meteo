@@ -207,30 +207,97 @@ def georeference_radar(radar_file, temp_dir):
         return None
 
 def clean_radar_image(input_path, output_path):
-    """Clean radar image: remove footer, header, make background transparent"""
+    """Clean radar image: remove footer, header text, logo, and make background transparent"""
     from PIL import Image, ImageDraw
     
     with Image.open(input_path) as img:
         img = img.convert('RGBA')
         width, height = img.size
         
-        # Remove footer (bottom 50 pixels)
-        radar_data = img.crop((0, 0, width, height - 50))
+        # Create a copy to modify
+        cleaned_img = img.copy()
         
-        # Make background transparent
+        # Step 1: Clear header text area (158x14 top-left)
+        for x in range(min(158, width)):
+            for y in range(min(14, height)):
+                cleaned_img.putpixel((x, y), (0, 0, 0, 0))  # Transparent
+        
+        # Step 2: Clear AEMET logo area (392,0 to 480,46)
+        for x in range(392, min(480, width)):
+            for y in range(min(46, height)):
+                cleaned_img.putpixel((x, y), (0, 0, 0, 0))  # Transparent
+        
+        # Step 3: Remove footer (bottom 50 pixels)
+        radar_data = cleaned_img.crop((0, 0, width, height - 50))
+        
+        # Step 4: Interpolate yellow boundary lines (8-neighbor averaging)
+        radar_data = interpolate_yellow_pixels(radar_data)
+        
+        # Step 5: Make background colors transparent
         data = list(radar_data.getdata())
         new_data = []
         
         for pixel in data:
             r, g, b, a = pixel
-            # Make black and grey transparent
-            if (r == 0 and g == 0 and b == 0) or (r == 127 and g == 127 and b == 127):
+            
+            # Make black transparent
+            if r == 0 and g == 0 and b == 0:
                 new_data.append((0, 0, 0, 0))
+            # Make grey transparent (RGB 127,127,127)
+            elif r == 127 and g == 127 and b == 127:
+                new_data.append((0, 0, 0, 0))
+            # Keep all other colors (precipitation data)
             else:
                 new_data.append(pixel)
         
         radar_data.putdata(new_data)
         radar_data.save(output_path)
+
+def interpolate_yellow_pixels(img):
+    """Replace yellow pixels with average of 8 surrounding non-yellow neighbors"""
+    width, height = img.size
+    result = img.copy()
+    
+    for y in range(height):
+        for x in range(width):
+            pixel = img.getpixel((x, y))
+            
+            # Check for yellowish colors
+            is_yellow = False
+            if len(pixel) >= 3:
+                r, g, b = pixel[0], pixel[1], pixel[2]
+                if (r > 80 and g > 80 and b < 50 and abs(r-g) < 30):
+                    is_yellow = True
+            
+            if is_yellow:
+                # Get 8 surrounding pixels
+                neighbors = []
+                for dy in [-1, 0, 1]:
+                    for dx in [-1, 0, 1]:
+                        if dx == 0 and dy == 0:  # Skip center pixel
+                            continue
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < width and 0 <= ny < height:
+                            neighbor = img.getpixel((nx, ny))
+                            # Only use non-yellow neighbors
+                            if len(neighbor) >= 3:
+                                nr, ng, nb = neighbor[0], neighbor[1], neighbor[2]
+                                if not (nr > 80 and ng > 80 and nb < 50 and abs(nr-ng) < 30):
+                                    neighbors.append(neighbor)
+                
+                if neighbors:
+                    # Calculate average RGB(A)
+                    avg_r = sum(p[0] for p in neighbors) // len(neighbors)
+                    avg_g = sum(p[1] for p in neighbors) // len(neighbors)
+                    avg_b = sum(p[2] for p in neighbors) // len(neighbors)
+                    avg_a = sum(p[3] for p in neighbors) // len(neighbors) if len(neighbors[0]) > 3 else 255
+                    
+                    result.putpixel((x, y), (avg_r, avg_g, avg_b, avg_a))
+                else:
+                    # No non-yellow neighbors, make transparent
+                    result.putpixel((x, y), (0, 0, 0, 0))
+    
+    return result
 
 def setup_eumdac():
     """Setup EUMDAC authentication"""
@@ -469,7 +536,7 @@ def extract_wv_bands(subset_file, temp_dir, timestamp):
         return []
 
 def create_enhanced_image(radar_georef_file, water_vapor_files, output_file):
-    """Create enhanced radar+satellite visualization"""
+    """Create enhanced radar+satellite visualization with city labels"""
     logger.info("Creating enhanced visualization")
     
     try:
@@ -477,6 +544,7 @@ def create_enhanced_image(radar_georef_file, water_vapor_files, output_file):
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
         from rasterio import open as rasterio_open
+        import geopandas as gpd
         
         # Load radar data
         with rasterio_open(radar_georef_file) as src:
@@ -503,6 +571,37 @@ def create_enhanced_image(radar_georef_file, water_vapor_files, output_file):
         if radar_masked.count() > 0:
             ax.imshow(radar_masked, extent=extent, cmap=radar_cmap, alpha=0.8, origin='upper')
         
+        # Load and add vector overlays
+        vectors = load_vector_data()
+        
+        # Province boundaries
+        if vectors and 'provinces' in vectors:
+            try:
+                vectors['provinces'].to_crs('EPSG:3857').plot(
+                    ax=ax, facecolor='none', edgecolor='yellow', linewidth=2
+                )
+                logger.info("Added province boundaries")
+            except Exception as e:
+                logger.warning(f"Failed to add provinces: {e}")
+        
+        # City labels
+        if vectors and 'cities' in vectors:
+            try:
+                cities_3857 = vectors['cities'].to_crs('EPSG:3857')
+                for idx, city in cities_3857.iterrows():
+                    x, y = city.geometry.x, city.geometry.y
+                    name = city['name']
+                    
+                    # Add city point and label
+                    ax.plot(x, y, 'o', color='white', markersize=6, markeredgecolor='black', markeredgewidth=1)
+                    ax.text(x + 3000, y + 3000, name, fontsize=10, color='white', 
+                           weight='bold', ha='left', va='bottom',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='black', alpha=0.7))
+                
+                logger.info(f"Added {len(cities_3857)} city labels")
+            except Exception as e:
+                logger.warning(f"Failed to add cities: {e}")
+        
         # Styling
         ax.set_xlim(radar_bounds.left, radar_bounds.right)
         ax.set_ylim(radar_bounds.bottom, radar_bounds.top)
@@ -528,6 +627,39 @@ def create_enhanced_image(radar_georef_file, water_vapor_files, output_file):
     except Exception as e:
         logger.error(f"Enhanced image creation failed: {e}")
         return False
+
+def load_vector_data():
+    """Load province borders and cities"""
+    vectors = {}
+    
+    try:
+        # Province borders
+        province_file = 'naturalearthdata/ne_10m_admin_1_states_provinces.shp'
+        if os.path.exists(province_file):
+            provinces = gpd.read_file(province_file)
+            # Filter Catalunya provinces
+            catalunya_provinces = provinces[provinces['name'].isin(['Barcelona', 'Tarragona', 'Girona', 'Lleida'])]
+            if not catalunya_provinces.empty:
+                vectors['provinces'] = catalunya_provinces
+                logger.info(f"Loaded {len(catalunya_provinces)} province boundaries")
+        else:
+            logger.warning(f"Province file not found: {province_file}")
+        
+        # Cities
+        cities_file = 'osm/catalunya_large_cities.geojson'
+        if os.path.exists(cities_file):
+            cities = gpd.read_file(cities_file)
+            # Filter out non-Catalunya cities and take top cities
+            catalunya_cities = cities[~cities['name'].isin(['Perpignan'])]
+            vectors['cities'] = catalunya_cities.head(8)  # Top 8 cities
+            logger.info(f"Loaded {len(vectors['cities'])} cities")
+        else:
+            logger.warning(f"Cities file not found: {cities_file}")
+            
+    except Exception as e:
+        logger.error(f"Failed to load vector data: {e}")
+    
+    return vectors
 
 def process_radar_file(radar_file):
     """Process single radar file through complete pipeline"""
