@@ -211,3 +211,4 @@ animations/*
 .venv_meteo
 aemet/*
 scripts/georef_data/*
+scripts/meteosat_data/*
