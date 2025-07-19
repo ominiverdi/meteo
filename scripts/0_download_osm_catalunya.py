@@ -60,29 +60,23 @@ def download_osm_data(query, output_file):
 def main():
     Path("../osm").mkdir(exist_ok=True)
     
-    # Catalunya province borders
-    provinces_query = """
-[out:json][bbox:40.5,0.7,42.9,3.4];
-relation["admin_level"="6"]["type"="boundary"]["boundary"="administrative"];
-out;
-"""
+
     
     # Cities with population data
     cities_query = """
-[out:json][bbox:40.5,0.7,42.9,3.4];
+[out:json][bbox:38.1,-0.7,42.9,4.4];
 node["place"~"city|town"]["population"];
 out;
 """
     
-    print("Downloading Catalunya provinces...")
-    download_osm_data(provinces_query, "../osm/catalunya_provinces.geojson")
+
     
     print("Downloading Catalunya cities...")
     city_count = download_osm_data(cities_query, "../osm/catalunya_cities.geojson")
     
     # Filter cities >100k
     if city_count > 0:
-        print("Filtering cities >100k population...")
+        print("Filtering large cities by population...")
         
         with open("../osm/catalunya_cities.geojson", 'r') as f:
             data = json.load(f)
@@ -92,7 +86,7 @@ out;
             pop_str = feature['properties'].get('population', '0')
             try:
                 population = int(pop_str.replace(',', '').replace('.', ''))
-                if population > 100000:
+                if population > 30000:
                     feature['properties']['population_int'] = population
                     large_cities.append(feature)
             except:
