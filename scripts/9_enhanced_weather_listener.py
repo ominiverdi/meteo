@@ -12,6 +12,7 @@ import psutil
 import subprocess
 import shutil
 import tempfile
+import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
@@ -27,6 +28,18 @@ try:
     from osgeo import gdal, osr
 except ImportError:
     print("❌ GDAL not installed. Run: sudo apt install python3-gdal")
+    exit(1)
+
+try:
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap
+    import rasterio
+    from rasterio import open as rasterio_open
+    import geopandas as gpd
+except ImportError as e:
+    print(f"❌ Missing package: {e}")
+    print("Run: uv pip install numpy matplotlib rasterio geopandas")
     exit(1)
 
 import warnings
@@ -352,7 +365,6 @@ def download_satellite_data(radar_timestamp, temp_dir):
         logger.info(f"Satellite data downloaded: {zip_file}")
         
         # Extract ZIP file to find .nat file
-        import zipfile
         nat_file = None
         
         try:
@@ -540,12 +552,6 @@ def create_enhanced_image(radar_georef_file, water_vapor_files, output_file):
     logger.info("Creating enhanced visualization")
     
     try:
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import LinearSegmentedColormap
-        from rasterio import open as rasterio_open
-        import geopandas as gpd
-        
         # Load radar data
         with rasterio_open(radar_georef_file) as src:
             radar_data = src.read(1)
@@ -633,8 +639,6 @@ def load_vector_data():
     vectors = {}
     
     try:
-        import geopandas as gpd  # Import here
-        
         # Province borders
         province_file = 'naturalearthdata/ne_10m_admin_1_states_provinces.shp'
         if os.path.exists(province_file):
