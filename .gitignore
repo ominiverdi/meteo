@@ -212,3 +212,5 @@ animations/*
 aemet/*
 scripts/georef_data/*
 scripts/meteosat_data/*
+naturalearthdata/*
+osm/*
