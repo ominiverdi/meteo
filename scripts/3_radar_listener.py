@@ -72,8 +72,12 @@ def ocr_footer_timestamp(image_path):
                     ocr_text = result.stdout.strip()
                     
                     if ocr_text:
-                        # Parse the OCR text
-                        parsed_timestamp = parse_footer_text(ocr_text)
+                        # Fix common OCR errors before parsing
+                        cleaned_text = clean_ocr_text(ocr_text)
+                        print(f"OCR raw: '{ocr_text}' -> cleaned: '{cleaned_text}'")
+                        
+                        # Parse the cleaned OCR text
+                        parsed_timestamp = parse_footer_text(cleaned_text)
                         return parsed_timestamp
                     
                     return None
@@ -88,6 +92,27 @@ def ocr_footer_timestamp(image_path):
     except Exception as e:
         print(f"OCR processing failed: {e}")
         return None
+
+def clean_ocr_text(ocr_text):
+    """Fix common OCR character recognition errors"""
+    if not ocr_text:
+        return ocr_text
+    
+    # Common OCR mistakes in radar footer timestamps
+    corrections = {
+        'O': '0',    # Letter O -> digit 0 (most common)
+        'o': '0',    # Lowercase o -> digit 0
+        'I': '1',    # Letter I -> digit 1
+        'l': '1',    # Lowercase L -> digit 1
+        'S': '5',    # Letter S -> digit 5 (sometimes)
+        'G': '6',    # Letter G -> digit 6 (sometimes)
+    }
+    
+    cleaned = ocr_text
+    for wrong, correct in corrections.items():
+        cleaned = cleaned.replace(wrong, correct)
+    
+    return cleaned
 
 def parse_footer_text(ocr_text):
     """Parse OCR'd footer text to extract timestamp"""
